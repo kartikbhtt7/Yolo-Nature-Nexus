@@ -22,26 +22,29 @@ def postprocess(outputs, conf_thresh=0.5, iou_thresh=0.5):
         
         if max_score >= conf_thresh:
             cx, cy, w, h = row[:4]
-            x = cx - w/2
-            y = cy - h/2
-            boxes.append([x, y, w, h])
+            x = (cx - w/2).item()  # Convert to Python float
+            y = (cy - h/2).item()
+            width = w.item()
+            height = h.item()
+            boxes.append([x, y, width, height])
             scores.append(float(max_score))
-            class_ids.append(class_id)
+            class_ids.append(int(class_id))
 
     if len(boxes) > 0:
-        boxes_np = np.array(boxes, dtype=np.float32)
-        scores_np = np.array(scores, dtype=np.float32)
+        # Convert to list of lists with native Python floats
+        boxes = [[float(x) for x in box] for box in boxes]
+        scores = [float(score) for score in scores]
         
         indices = cv2.dnn.NMSBoxes(
-            bboxes=boxes_np.tolist(),
-            scores=scores_np.tolist(),
+            bboxes=boxes,
+            scores=scores,
             score_threshold=conf_thresh,
             nms_threshold=iou_thresh
         )
         
         if len(indices) > 0:
-            boxes = boxes_np[indices.flatten()]
-            scores = scores_np[indices.flatten()]
+            boxes = [boxes[i] for i in indices.flatten()]
+            scores = [scores[i] for i in indices.flatten()]
             class_ids = [class_ids[i] for i in indices.flatten()]
 
     return boxes, scores, class_ids
